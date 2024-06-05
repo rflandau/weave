@@ -247,8 +247,8 @@ func FindQualifiedField[Any any](qualCol string, st any) (field reflect.StructFi
 
 }
 
-// Returns a list of all fields in the struct *definition*, as they are ordered
-// internally
+// Returns the fully qualified name of every (exported) fields in the struct
+// *definition*, as they are ordered internally
 func StructFields(st any, exportedOnly bool) (columns []string, err error) {
 	if st == nil {
 		return nil, errors.New(ErrStructIsNil)
