@@ -98,27 +98,11 @@ func chomp(s string) string {
 	return strings.TrimSuffix(s, ",")
 }
 
-type tblStyle struct {
-	borderType   lipgloss.Border
-	borderStyle  lipgloss.Style
-	header       lipgloss.Style
-	evenRowStyle lipgloss.Style
-	oddRowStyle  lipgloss.Style
-}
-
-var defaultTableStyle = tblStyle{
-	borderType:  lipgloss.NormalBorder(),
-	borderStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("99")),
-	header: lipgloss.NewStyle().
-		Foreground(lipgloss.Color("99")).
-		AlignHorizontal(lipgloss.Center).
-		AlignVertical(lipgloss.Center),
-	evenRowStyle: lipgloss.NewStyle().Padding(0, 1).Width(30).
-		Foreground(lipgloss.Color("CC22CC")),
-	oddRowStyle: lipgloss.NewStyle().Padding(0, 1).Width(30).
-		Foreground(lipgloss.Color("FF77FF"))}
-
-func ToTable[Any any](st []Any, columns []string) string {
+// Given an array of an arbitrary struct and the list of *fully-qualified* fields,
+// outputs a table containing the data in the array of the struct.
+//
+// Can optionally be given a table style func. Uses DefaultTblStyle() if not given.
+func ToTable[Any any](st []Any, columns []string, styleFunc ...func() *table.Table) string {
 	if columns == nil || st == nil || len(st) < 1 || len(columns) < 1 { // superfluous request
 		return ""
 	}
@@ -145,28 +129,24 @@ func ToTable[Any any](st []Any, columns []string) string {
 		}
 	}
 
-	return styleTable(columns, rows)
+	var tbl *table.Table
+	// if user supplied a tableStyle, use it. Otherwise, use the default
+	if len(styleFunc) > 0 {
+		tbl = styleFunc[0]()
+	} else {
+		tbl = DefaultTblStyle()
+	}
+
+	tbl.Headers(columns...)
+	tbl.Rows(rows...)
+
+	return tbl.Render()
 }
 
-func styleTable(header []string, rows [][]string) string {
-
-	tbl := table.New().
-		Border(defaultTableStyle.borderType).
-		BorderStyle(defaultTableStyle.borderStyle).
-		StyleFunc(func(row, col int) lipgloss.Style {
-			switch {
-			case row == 0:
-				return defaultTableStyle.header
-			case row%2 == 0:
-				return defaultTableStyle.evenRowStyle
-			default:
-				return defaultTableStyle.oddRowStyle
-			}
-		}).BorderRow(false)
-	// populate data
-	tbl.Headers(header...)
-	tbl.Rows(rows...)
-	return tbl.Render()
+func DefaultTblStyle() *table.Table {
+	return table.New().StyleFunc(func(row, col int) lipgloss.Style {
+		return lipgloss.NewStyle().Width(10) // set set row and column width
+	})
 }
 
 // Converts the given array of structs to a JSON containing their values (limited to the given columns).
