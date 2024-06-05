@@ -14,9 +14,9 @@ type someData struct {
 	someEmbed
 	A int
 }
-	data := someData{someEmbed: someEmbed{Fld: 5}, A: 10}
+data := someData{someEmbed: someEmbed{Fld: 5}, A: 10}
 
-	output := ToCSV(data, []string{"A"})
+output := ToCSV(data, []string{"A"})
 
-	fmt.Println(output)
+fmt.Println(output)
 ```
