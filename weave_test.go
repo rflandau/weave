@@ -2,12 +2,9 @@ package weave
 
 import (
 	"fmt"
-	"gwcli/clilog"
 	"reflect"
 	"strings"
 	"testing"
-
-	grav "github.com/gravwell/gravwell/v3/ingest/log"
 )
 
 const longCSVLineCount = 17000
@@ -37,7 +34,6 @@ func TestToCSVHash(t *testing.T) {
 		columns []string
 	}
 
-	clilog.Init("weave_test.log", grav.DEBUG)
 	var c float32 = 5.0123
 
 	tests := []struct {
