@@ -360,6 +360,21 @@ func TestToCSVHash(t *testing.T) {
 	})
 }
 
+func TestTableSpotCheck(t *testing.T) {
+	type s struct {
+		A int
+		B int
+		c string
+	}
+
+	data := []s{
+		{A: 1, B: 2, c: "c"},
+		{A: 1, B: 2, c: "c"},
+	}
+
+	fmt.Println(ToTable(data, []string{"A", "B", "c"}))
+}
+
 func TestFindQualifiedField(t *testing.T) {
 	type lvl3 struct {
 		d int
