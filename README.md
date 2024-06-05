@@ -5,6 +5,14 @@ It supports field selection, named/unnamed structs, and embeds.
 
 # Usage
 
+Basic usage is via the output modules (`To*`). Simply pass your data to an output module along with the fully qualified (more on this below) names of the columns you want outputted. The data must be an *array of the same struct*.
+
+Ex: `out := ToCSV(data, []string{"fieldname", "structname.anotherinnerstruct.fieldname"})`
+
+Call `StructField()` on your struct to see the full, qualified names of every field at every depth.
+
+## Example
+
 ```go
 type someEmbed struc {
 	Fld int
@@ -20,3 +28,41 @@ output := ToCSV(data, []string{"A"})
 
 fmt.Println(output)
 ```
+
+## Dot Qualification
+
+Column names are dot qualified and have predictable paths with one exception: **embedded structs' fields are not promoted**.
+
+To repeat: call `StructField()` on your struct to see the full, qualified names of every field at every depth.
+
+### Examples
+
+#### Basic
+
+```go
+type A struct {
+	a int
+	b int
+	C int
+}
+```
+
+Can be accessed directly ("a", "b", "C").
+
+#### Embedding
+
+```go
+type mbd struct {
+	X string
+	z string
+}
+
+type A struct {
+	a int
+	b int
+	C int
+	mbd
+}
+```
+
+Embedded field are accessed as "mbd.X" and "mbd.z".
