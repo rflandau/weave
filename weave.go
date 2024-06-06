@@ -233,8 +233,11 @@ func FindQualifiedField[Any any](qualCol string, st any) (field reflect.StructFi
 	exploded := strings.Split(qualCol, ".")
 	field.Type = t
 	// iterate down the field tree until we run out of qualifications or cannot
-	// location the next qualification
+	// locate the next qualification
 	for i, e := range exploded {
+		if field.Type.Kind() == reflect.Pointer {
+			field.Type = field.Type.Elem() // dereference
+		}
 		field, found = field.Type.FieldByName(e)
 		if !found { // no value found
 			fmt.Printf("DEBUG: found no value for qualifier '%s' at depth %d\n", e, i)
