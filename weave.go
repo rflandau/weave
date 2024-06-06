@@ -91,11 +91,7 @@ func stringifyStructCSV(s interface{}, columns []string, columnMap map[string][]
 		row.WriteString(",") // append comma to token
 	}
 
-	return chomp(row.String())
-}
-
-func chomp(s string) string {
-	return strings.TrimSuffix(s, ",")
+	return strings.TrimSuffix(row.String(), ",")
 }
 
 // Given an array of an arbitrary struct and the list of *fully-qualified* fields,
@@ -143,6 +139,8 @@ func ToTable[Any any](st []Any, columns []string, styleFunc ...func() *table.Tab
 	return tbl.Render()
 }
 
+// Style function used internally by ToTable if a styleFunc is not provided.
+// Use as an example for supplying your own.
 func DefaultTblStyle() *table.Table {
 	return table.New().StyleFunc(func(row, col int) lipgloss.Style {
 		return lipgloss.NewStyle().Width(10) // set set row and column width
