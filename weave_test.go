@@ -11,8 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss/table"
 )
 
-const longCSVLineCount = 17000
-
 type too struct {
 	mu int
 	yu int16
@@ -20,7 +18,7 @@ type too struct {
 
 type inner struct {
 	foo string
-	too too
+	too *too
 }
 
 type outer struct {
@@ -33,6 +31,8 @@ type outer struct {
 }
 
 func TestToCSV(t *testing.T) {
+	const longCSVLineCount = 17000
+
 	type args struct {
 		st      []interface{}
 		columns []string
@@ -81,7 +81,7 @@ func TestToCSV(t *testing.T) {
 		{"∃!c∃!r, deeply nested",
 			args{
 				st: []interface{}{
-					outer{inner: inner{too: too{mu: 5}}},
+					outer{inner: inner{too: &too{mu: 5}}},
 				},
 				columns: []string{
 					"too.mu",
@@ -91,7 +91,7 @@ func TestToCSV(t *testing.T) {
 		{"∃c∃!r, deeply nested",
 			args{
 				st: []interface{}{
-					outer{inner: inner{too: too{mu: 5, yu: 6}}},
+					outer{inner: inner{too: &too{mu: 5, yu: 6}}},
 				},
 				columns: []string{
 					"too.mu", "too.yu",
@@ -101,7 +101,7 @@ func TestToCSV(t *testing.T) {
 		{"∃c∃!r, deeply nested",
 			args{
 				st: []interface{}{
-					outer{inner: inner{too: too{mu: 5, yu: 6}}, a: 10000, Exported: -87.5},
+					outer{inner: inner{too: &too{mu: 5, yu: 6}}, a: 10000, Exported: -87.5},
 				},
 				columns: []string{
 					"Exported", "too.mu", "too.yu", "a",
@@ -112,7 +112,7 @@ func TestToCSV(t *testing.T) {
 			args{
 				st: []interface{}{
 					outer{
-						inner:    inner{foo: "FOO", too: too{mu: 5, yu: 1}},
+						inner:    inner{foo: "FOO", too: &too{mu: 5, yu: 1}},
 						a:        10,
 						b:        0,
 						c:        &c,
