@@ -360,19 +360,152 @@ func TestToCSVHash(t *testing.T) {
 	})
 }
 
-func TestTableSpotCheck(t *testing.T) {
-	type s struct {
-		A int
-		B int
-		c string
+func TestToTable(t *testing.T) {
+	type d1 struct {
+		one string
+		Two string
+	}
+	type d0 struct {
+		A      int
+		B      int
+		c      string
+		depth1 d1
 	}
 
-	data := []s{
-		{A: 1, B: 2, c: "c"},
-		{A: 1, B: 2, c: "c"},
+	t.Run("depth 0, all columns", func(t *testing.T) {
+		actualData := []d0{
+			{A: 1, B: 2, c: "c"},
+			{A: 1, B: 2, c: "c"},
+		}
+
+		expectedRows := [][]string{
+			{"1", "2", "c"},
+			{"1", "2", "c"},
+		}
+		expectedHeader := []string{"A", "B", "c"}
+
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		actual := ToTable(actualData, []string{"A", "B", "c"})
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual%s\nexpected%s", actual, expected)
+		}
+	})
+	t.Run("depth 1, all columns", func(t *testing.T) {
+		actualData := []d0{
+			{A: 1, B: 2, c: "c", depth1: d1{one: "one", Two: "Two"}},
+			{A: 1, B: 2, c: "c", depth1: d1{one: "one", Two: "Two"}},
+		}
+		actual := ToTable(actualData, []string{"A", "B", "c", "depth1.one", "depth1.Two"})
+
+		expectedRows := [][]string{
+			{"1", "2", "c", "one", "Two"},
+			{"1", "2", "c", "one", "Two"},
+		}
+		expectedHeader := []string{"A", "B", "c", "depth1.one", "depth1.Two"}
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
+	t.Run("depth 1, some columns", func(t *testing.T) {
+		actualData := []d0{
+			{A: 1, B: 2, c: "c", depth1: d1{one: "one", Two: "Two"}},
+			{A: 1, B: 2, c: "c", depth1: d1{one: "one", Two: "Two"}},
+		}
+		actual := ToTable(actualData, []string{"A", "depth1.one", "depth1.Two"})
+
+		expectedRows := [][]string{
+			{"1", "one", "Two"},
+			{"1", "one", "Two"},
+		}
+		expectedHeader := []string{"A", "depth1.one", "depth1.Two"}
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
+	t.Run("depth 1, some columns, varying data", func(t *testing.T) {
+		actualData := []d0{
+			{A: 1, B: 2, c: "c", depth1: d1{one: "one", Two: "Two"}},
+			{A: 3, B: 4, c: "c2", depth1: d1{one: "one2", Two: "Two2"}},
+		}
+		actual := ToTable(actualData, []string{"A", "depth1.one", "depth1.Two"})
+
+		expectedRows := [][]string{
+			{"1", "one", "Two"},
+			{"3", "one2", "Two2"},
+		}
+		expectedHeader := []string{"A", "depth1.one", "depth1.Two"}
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
+
+	type e1 struct {
+		Alpha *float32
+		beta  float64
+	}
+	type d1p struct {
+		e1
+		one *string
+	}
+	type d0p struct {
+		A       *int
+		B       int
+		c       *string
+		D       string
+		depth1p *d1p
 	}
 
-	fmt.Println(ToTable(data, []string{"A", "B", "c"}))
+	t.Run("depth 0, w/ pointers and all columns", func(t *testing.T) {
+		A, c := 1, "c"
+
+		actualData := []d0p{
+			{A: &A, B: 2, c: &c},
+			{A: &A, B: 2, c: &c},
+		}
+		actual := ToTable(actualData, []string{"A", "B", "c"})
+
+		expectedRows := [][]string{
+			{"1", "2", "c"},
+			{"1", "2", "c"},
+		}
+		expectedHeader := []string{"A", "B", "c"}
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
+
+	t.Run("depth 1, w/ pointers, embed, and all columns", func(t *testing.T) {
+		// data for pointers
+		A, c, one := 1, "c", "one"
+		var Alpha float32 = 3.14
+		depth1p := d1p{e1: e1{Alpha: &Alpha, beta: 6.28}, one: &one}
+
+		actualData := []d0p{
+			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
+			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
+		}
+		actual := ToTable(actualData, []string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"})
+
+		expectedRows := [][]string{
+			{"1", "2", "c", "D", "3.14", "6.28", "one"},
+			{"1", "2", "c", "D", "3.14", "6.28", "one"},
+		}
+		expectedHeader := []string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"}
+		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
 }
 
 func TestFindQualifiedField(t *testing.T) {
@@ -387,7 +520,7 @@ func TestFindQualifiedField(t *testing.T) {
 	type lvl2 struct {
 		b  uint
 		c  *string
-		l3 lvl3
+		l3 *lvl3
 	}
 	type lvl1 struct {
 		lvl2
@@ -397,7 +530,7 @@ func TestFindQualifiedField(t *testing.T) {
 
 	// silence "unused" warnings as we only care about types
 	c := "c"
-	var _ lvl1 = lvl1{l2: lvl2{b: 0, c: &c, l3: lvl3{d: -8,
+	var _ lvl1 = lvl1{l2: lvl2{b: 0, c: &c, l3: &lvl3{d: -8,
 		e: struct {
 			a string
 			b string
