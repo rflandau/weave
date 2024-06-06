@@ -1,6 +1,7 @@
 package weave
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -559,6 +560,73 @@ func TestToTable(t *testing.T) {
 			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
 		}
 	})
+}
+
+func TestToJSON(t *testing.T){
+	
+	t.Run("depth 0 all strings", func(t *testing.T) {
+		type d0 struct {
+			A string
+			b string 
+			C string
+		}
+		data := []d0{
+			{A: "1", b: "-2", C: "C string"},
+		}
+	
+		actual, err := ToJSON(data, []string{"A", "C"})
+		if err != nil {
+			panic(err)
+		}
+	
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+	
+		if string(want) != actual{
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+
+	t.Run("depth 0 all string pointers", func(t *testing.T) {
+		type d0 struct {
+			A *string
+			b *string 
+			C *string
+		}
+		A, b, C := "1", "-2", "C string"
+		data := []d0{
+			{A: &A, b: &b, C: &C},
+		}
+	
+		actual, err := ToJSON(data, []string{"A", "C"})
+		if err != nil {
+			panic(err)
+		}
+	
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+	
+		if string(want) != actual{
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	
 }
 
 func TestFindQualifiedField(t *testing.T) {
