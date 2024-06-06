@@ -2,7 +2,7 @@ module weave
 
 go 1.19
 
-require github.com/goccy/go-json v0.10.3
+require github.com/Jeffail/gabs/v2 v2.7.0
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
