@@ -247,7 +247,7 @@ func TestToCSV(t *testing.T) {
 	t.Run("not a struct", func(t *testing.T) {
 		m := map[int]float32{}
 
-		if got := ToCSV([]map[int]float32{m}, []string{"some", "column", "names"}); got != ""{
+		if got := ToCSV([]map[int]float32{m}, []string{"some", "column", "names"}); got != "" {
 			t.Errorf("expected the empty string, got %v", got)
 		}
 	})
@@ -381,7 +381,6 @@ func TestToTable(t *testing.T) {
 			t.Errorf("string mismatch.\nactual%s\nexpected the empty string", actual)
 		}
 	})
-
 
 	type d1 struct {
 		one string
@@ -530,7 +529,7 @@ func TestToTable(t *testing.T) {
 	})
 
 	t.Run("depth 1, w/ pointers, embed, custom style, and all columns", func(t *testing.T) {
-		styleFunc := func () *table.Table {
+		styleFunc := func() *table.Table {
 			return table.New().Border(lipgloss.OuterHalfBlockBorder()).StyleFunc(func(row, col int) lipgloss.Style {
 				return lipgloss.NewStyle().Width(5).Foreground(lipgloss.Color("#AABBCC")) // set set row and column width
 			})
@@ -545,7 +544,7 @@ func TestToTable(t *testing.T) {
 			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
 			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
 		}
-		actual := ToTable(actualData, 
+		actual := ToTable(actualData,
 			[]string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"},
 			styleFunc)
 
@@ -562,23 +561,23 @@ func TestToTable(t *testing.T) {
 	})
 }
 
-func TestToJSON(t *testing.T){
-	
+func TestToJSON(t *testing.T) {
+
 	t.Run("depth 0 all strings", func(t *testing.T) {
 		type d0 struct {
 			A string
-			b string 
+			b string
 			C string
 		}
 		data := []d0{
 			{A: "1", b: "-2", C: "C string"},
 		}
-	
+
 		actual, err := ToJSON(data, []string{"A", "C"})
 		if err != nil {
 			panic(err)
 		}
-	
+
 		var want string = "["
 		for _, d := range data {
 			w, err := json.Marshal(d)
@@ -589,8 +588,8 @@ func TestToJSON(t *testing.T){
 		}
 		want = strings.TrimSuffix(want, ",")
 		want += "]"
-	
-		if string(want) != actual{
+
+		if string(want) != actual {
 			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
 		}
 	})
@@ -598,19 +597,19 @@ func TestToJSON(t *testing.T){
 	t.Run("depth 0 all string pointers", func(t *testing.T) {
 		type d0 struct {
 			A *string
-			b *string 
+			b *string
 			C *string
 		}
 		A, b, C := "1", "-2", "C string"
 		data := []d0{
 			{A: &A, b: &b, C: &C},
 		}
-	
+
 		actual, err := ToJSON(data, []string{"A", "C"})
 		if err != nil {
 			panic(err)
 		}
-	
+
 		var want string = "["
 		for _, d := range data {
 			w, err := json.Marshal(d)
@@ -621,13 +620,85 @@ func TestToJSON(t *testing.T){
 		}
 		want = strings.TrimSuffix(want, ",")
 		want += "]"
-	
-		if string(want) != actual{
+
+		if string(want) != actual {
 			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
 		}
 	})
-	
+
 }
+
+func TestToJSONExclude(t *testing.T) {
+	const emptyJSON = "[]"
+
+	type d0 struct{
+		a int
+		B uint
+		C string
+		D *string
+	}
+	D := "D string"
+
+	type args struct {
+		st        []interface{}
+		blacklist []string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{"superfluous", args{st: nil, blacklist: []string{"Ted", "Cruz", "ate", "my", "son"}}, emptyJSON, true},
+		{"not a struct", args{st: []interface{}{[]map[uint]int{}}, blacklist: []string{"AI", "is", "a", "fad"}}, emptyJSON, true},
+		{"∀c2r, nil blacklist, some values initialized",
+			args{
+				st: []interface{}{
+					d0{a: 10, B: 0},
+					d0{a: 11, B: 1},
+				},
+				blacklist: nil,
+			},
+			"[{\"B\":0,\"C\":\"\",\"D\":null},{\"B\":1,\"C\":\"\",\"D\":null}]",
+			false,
+		},
+		{"∀c2r nil blacklist, all values initialized",
+			args{
+				st: []interface{}{
+					d0{a: 10, B: 0, C: "C string", D: &D},
+					d0{a: 11, B: 1, C: "C string", D: &D},
+				},
+				blacklist: nil,
+			},
+			"[{\"B\":0,\"C\":\"C string\",\"D\":\""+D+"\"},{\"B\":1,\"C\":\"C string\",\"D\":\""+D+"\"}]",
+			false,
+		},
+		{"∀c2r blacklist B and C",
+			args{
+				st: []interface{}{
+					d0{a: 10, B: 0, C: "C string", D: &D},
+					d0{a: 11, B: 1, C: "C string", D: &D},
+				},
+				blacklist: []string{"B", "C"},
+			},
+			"[{\"D\":\""+D+"\"},{\"D\":\""+D+"\"}]",
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ToJSONExclude(tt.args.st, tt.args.blacklist)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ToJSONExclude() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ToJSONExclude() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 
 func TestFindQualifiedField(t *testing.T) {
 	type lvl3 struct {
@@ -864,7 +935,7 @@ func TestFindQualifiedField(t *testing.T) {
 		if index != nil {
 			t.Errorf("index should be nil. Got: %v", index)
 		}
-		if !reflect.DeepEqual(field, reflect.StructField{}){
+		if !reflect.DeepEqual(field, reflect.StructField{}) {
 			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
 		}
 	})
@@ -881,7 +952,7 @@ func TestFindQualifiedField(t *testing.T) {
 		if index != nil {
 			t.Errorf("index should be nil. Got: %v", index)
 		}
-		if !reflect.DeepEqual(field, reflect.StructField{}){
+		if !reflect.DeepEqual(field, reflect.StructField{}) {
 			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
 		}
 	})
@@ -898,7 +969,7 @@ func TestFindQualifiedField(t *testing.T) {
 		if index != nil {
 			t.Errorf("index should be nil. Got: %v", index)
 		}
-		if !reflect.DeepEqual(field, reflect.StructField{}){
+		if !reflect.DeepEqual(field, reflect.StructField{}) {
 			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
 		}
 	})

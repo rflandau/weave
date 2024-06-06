@@ -187,6 +187,42 @@ func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	return toRet + "]", nil // close JSON array
 }
 
+// Converts the given struct array to a JSON array, excluding the fully
+// qualified field names in blacklist.
+// Calling with an empty or nil blacklist returns the entire, exported
+// structures.
+// Sister function to `ToJSON()`
+func ToJSONExclude[Any any](st []Any, blacklist []string) (string, error){
+	if st == nil || len(st) < 1 { // superfluous request
+		return "[]", errors.New(ErrStructIsNil)
+	}
+
+	// test the first struct is actually a struct
+	// if later structs do not match, that is a developer error
+	if reflect.TypeOf(st[0]).Kind()  != reflect.Struct{
+		return "[]", errors.New(ErrNotAStruct)
+	}
+
+	var writer strings.Builder
+	writer.WriteRune('[')
+	for _, s := range st {
+		obj := gabs.Wrap(s)
+		fmt.Println(obj.String())
+		// remove excluded colums
+		for _, col := range blacklist{
+			if err := obj.DeleteP(col); err != nil {
+				return "", fmt.Errorf("column %s: %v", col, err)
+			}
+		}
+		// add to array
+		writer.WriteString(obj.String())
+		writer.WriteString(",")
+	}
+
+	// chip, close, and return
+	return strings.TrimSuffix(writer.String(), ",") + "]", nil
+}
+
 // Given a fully qualified column name (ex: "outerstruct.innerstruct.field"),
 // finds the associated field, if it exists.
 //
