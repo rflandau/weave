@@ -1,10 +1,14 @@
 package weave
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 )
 
 const longCSVLineCount = 17000
@@ -361,6 +365,15 @@ func TestToCSV(t *testing.T) {
 }
 
 func TestToTable(t *testing.T) {
+	t.Run("superfluous", func(t *testing.T) {
+		actual := ToTable[any](nil, []string{"A", "B", "c"})
+
+		if actual != "" {
+			t.Errorf("string mismatch.\nactual%s\nexpected the empty string", actual)
+		}
+	})
+
+
 	type d1 struct {
 		one string
 		Two string
@@ -501,6 +514,38 @@ func TestToTable(t *testing.T) {
 		}
 		expectedHeader := []string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"}
 		expected := DefaultTblStyle().Headers(expectedHeader...).Rows(expectedRows...).Render()
+
+		if actual != expected {
+			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
+		}
+	})
+
+	t.Run("depth 1, w/ pointers, embed, custom style, and all columns", func(t *testing.T) {
+		styleFunc := func () *table.Table {
+			return table.New().Border(lipgloss.OuterHalfBlockBorder()).StyleFunc(func(row, col int) lipgloss.Style {
+				return lipgloss.NewStyle().Width(5).Foreground(lipgloss.Color("#AABBCC")) // set set row and column width
+			})
+		}
+
+		// data for pointers
+		A, c, one := 1, "c", "one"
+		var Alpha float32 = 3.14
+		depth1p := d1p{e1: e1{Alpha: &Alpha, beta: 6.28}, one: &one}
+
+		actualData := []d0p{
+			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
+			{A: &A, B: 2, c: &c, D: "D", depth1p: &depth1p},
+		}
+		actual := ToTable(actualData, 
+			[]string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"},
+			styleFunc)
+
+		expectedRows := [][]string{
+			{"1", "2", "c", "D", "3.14", "6.28", "one"},
+			{"1", "2", "c", "D", "3.14", "6.28", "one"},
+		}
+		expectedHeader := []string{"A", "B", "c", "D", "depth1p.Alpha", "depth1p.beta", "depth1p.one"}
+		expected := styleFunc().Headers(expectedHeader...).Rows(expectedRows...).Render()
 
 		if actual != expected {
 			t.Errorf("string mismatch.\nactual\n%s\nexpected\n%s", actual, expected)
@@ -729,6 +774,56 @@ func TestFindQualifiedField(t *testing.T) {
 
 		if !structFieldsEqual(got, exp) {
 			t.Errorf("equality mismatch: got(%v) != expected(%v)", got, exp)
+		}
+	})
+
+	t.Run("empty column name", func(t *testing.T) {
+		field, found, index, err := FindQualifiedField[lvl1]("", lvl1{})
+		if err != nil {
+			t.Error(err)
+		}
+		if found != false {
+			t.Error("found field. expected found == false")
+		}
+		if index != nil {
+			t.Errorf("index should be nil. Got: %v", index)
+		}
+		if !reflect.DeepEqual(field, reflect.StructField{}){
+			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
+		}
+	})
+
+	t.Run("nil struct", func(t *testing.T) {
+		field, found, index, err := FindQualifiedField[lvl1]("a", nil)
+		want := errors.New(ErrStructIsNil)
+		if errors.Is(err, want) {
+			t.Errorf("Expected '%v', got '%v'", want, err)
+		}
+		if found != false {
+			t.Error("found field. expected found == false")
+		}
+		if index != nil {
+			t.Errorf("index should be nil. Got: %v", index)
+		}
+		if !reflect.DeepEqual(field, reflect.StructField{}){
+			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
+		}
+	})
+
+	t.Run("not a struct", func(t *testing.T) {
+		field, found, index, err := FindQualifiedField[map[string]string]("a", map[string]string{})
+		want := errors.New(ErrNotAStruct)
+		if errors.Is(err, want) {
+			t.Errorf("Expected '%v', got '%v'", want, err)
+		}
+		if found != false {
+			t.Error("found field. expected found == false")
+		}
+		if index != nil {
+			t.Errorf("index should be nil. Got: %v", index)
+		}
+		if !reflect.DeepEqual(field, reflect.StructField{}){
+			t.Errorf("field mismatch. Expected empty StructField{}, got: %v", field)
 		}
 	})
 }
