@@ -28,7 +28,7 @@ type outer struct {
 	Exported float64
 }
 
-func TestToCSVHash(t *testing.T) {
+func TestToCSV(t *testing.T) {
 	type args struct {
 		st      []interface{}
 		columns []string
