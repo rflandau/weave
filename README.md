@@ -31,7 +31,7 @@ fmt.Println(output)
 
 ## Dot Qualification
 
-Column names are dot qualified and have predictable paths with one exception: **embedded structs' fields are not promoted**.
+Column names are dot qualified and follow Go's rules for struct nesting and promotion.
 
 To repeat: call `StructField()` on your struct to see the full, qualified names of every field at every depth.
 
@@ -65,4 +65,28 @@ type A struct {
 }
 ```
 
-Embedded field are accessed as "mbd.X" and "mbd.z".
+Embedded field are accessed as "X" and "z".
+
+#### Structs Within Structs
+
+```go
+type deep struct {
+	F float 64
+}
+
+type shallow struct {
+	D deep
+	X string
+	z string
+}
+
+type A struct {
+	a int
+	b int
+	C int
+	i inner
+}
+```
+
+"i.D.F", "i.z"
+

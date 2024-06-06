@@ -31,10 +31,11 @@ const (
 // data contained therein.
 //
 // Uses qualified names to access nested structs/fields of arbitrary depth.
-// Promoted names can still be accessed unqualified, but all other nested structs/fields are accessed via dot separators.
+// Promoted names can still be accessed unqualified, but all other nested
+// structs/fields are accessed via dot separators.
 // Ex: structField.fieldA
 //
-// # See FindQualifiedField for more on qualification.
+// *See the README's dot qualification section for more information*
 //
 // ! column names are case sensitive
 // ! Returns the empty string if columns or st are empty
@@ -148,9 +149,6 @@ func DefaultTblStyle() *table.Table {
 }
 
 // Converts the given array of structs to a JSON containing their values (limited to the given columns).
-//
-// ! The nesting structure of the JSON will *not* exactly match the nesting implied by the qualified names.
-// This is because Go promotes embedded values whereas the qualification relies on the embedded type's type name.
 func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	/**
 	 * Design note:
@@ -201,18 +199,23 @@ func ColumnsToFieldQuery(columns []string) (*json.FieldQuery, error) {
 // Given a fully qualified column name (ex: "outerstruct.innerstruct.field"),
 // finds the associated field, if it exists.
 //
+// Qualifications follow Go's rules for nested structs, including embedded
+// variable promotion.
+//
 // Returns the field, whether or not it was found, the index path (for
 // FieldByIndex) to the field (more on this below), and any errors.
 //
-// index path is returned here becaue field.Index is NOT reliable for some
-// nested structures. Fields do not necessarily know their complete index path
-// for the given parent struct and therefore using field.Index in FieldByIndex
-// can cause unexpected, erroneous reults.
-// The returned index path is composed of the known indices of every field
-// touched during traversal, returning a complete path.
-//
 // ! st must be a struct
 func FindQualifiedField[Any any](qualCol string, st any) (field reflect.StructField, found bool, index []int, err error) {
+	// Design Note:
+	// Index path is returned becaue field.Index is NOT reliable for some
+	// nested fields. Fields do not necessarily know their complete index path
+	// for the given parent struct and therefore using field.Index in FieldByIndex
+	// can cause unexpected, erroneous reults (generally fetching items at a
+	// higher depth than the field actually is).
+	// The returned index path is composed of the known indices of every field
+	// touched during traversal, returning a complete path.
+
 	// pre checks
 	if qualCol == "" {
 		return reflect.StructField{}, false, nil, nil
@@ -245,8 +248,10 @@ func FindQualifiedField[Any any](qualCol string, st any) (field reflect.StructFi
 
 }
 
-// Returns the fully qualified name of every (exported) fields in the struct
+// Returns the fully qualified name of every (exported) field in the struct
 // *definition*, as they are ordered internally
+// These qualified names are the expected format for the output modules in this
+// package
 func StructFields(st any, exportedOnly bool) (columns []string, err error) {
 	if st == nil {
 		return nil, errors.New(ErrStructIsNil)
