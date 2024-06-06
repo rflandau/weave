@@ -6,15 +6,14 @@
 package weave
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
-	"github.com/goccy/go-json"
 )
 
 //#region errors
@@ -156,50 +155,36 @@ func DefaultTblStyle() *table.Table {
 
 // Converts the given array of structs to a JSON containing their values (limited to the given columns).
 func ToJSON[Any any](st []Any, columns []string) (string, error) {
-	/**
-	 * Design note:
-	 * Reflection is slow and, worse, does not support dynamic struct tag re-writing.
-	 * Thus, we take advantage of goccy's go-json library and its ability to dynamically filter fields.
-	 * Even better, the qualified type names work exceptionally well for dynamically building (Sub) Field Queries.
-	 */
-
 	if columns == nil || st == nil || len(st) < 1 || len(columns) < 1 { // superfluous request
 		return "[]", nil
 	}
 
-	// generate json filter from columns
-	fq, err := ColumnsToFieldQuery(columns)
-	if err != nil {
-		return "", err
-	}
-
-	// bind filter to reusable context
-	filterctx := json.SetFieldQueryToContext(context.Background(), fq)
+	columnMap := buildColumnMap(st[0], columns)
 
 	var bldr strings.Builder
 	bldr.WriteRune('[') // open JSON array
 	for _, s := range st {
-
-		// marshal the struct and append it to our builder
-		b, err := json.MarshalContext(filterctx, s)
-		if err != nil {
-			return "", err
+		g := gabs.New()
+		structVals := reflect.ValueOf(s)
+		for _, col := range columns {
+			// get value associated to this column
+			findex := columnMap[col]
+			if findex != nil {
+				data := structVals.FieldByIndex(findex)
+				if data.Kind() == reflect.Pointer {
+					data = data.Elem()
+				}
+				// save the data into our object
+				// TODO cast data back to its native type
+				g.SetP(fmt.Sprintf("%v", data), col)
+			}
 		}
-		bldr.Write(b)
-		bldr.WriteRune(',') // new item
+		bldr.WriteString(g.String())
+		bldr.WriteRune(',') // new entry
 	}
 	toRet := strings.TrimSuffix(bldr.String(), ",") // chomp final comma
 
 	return toRet + "]", nil // close JSON array
-}
-
-func ColumnsToFieldQuery(columns []string) (*json.FieldQuery, error) {
-	var fqs []json.FieldQueryString
-
-	// TODO
-
-	return json.BuildFieldQuery(fqs...)
-
 }
 
 // Given a fully qualified column name (ex: "outerstruct.innerstruct.field"),
