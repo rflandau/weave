@@ -54,13 +54,19 @@ func ToCSV[Any any](st []Any, columns []string) string {
 		return ""
 	}
 
+	// test the first struct is actually a struct
+	// if later structs do not match, that is a developer error
+	if reflect.TypeOf(st[0]).Kind()  != reflect.Struct{
+		return ""
+	}
+
 	columnMap := buildColumnMap(st[0], columns)
 
 	var hdr string = strings.Join(columns, ",")
 
 	var csv strings.Builder // stores the actual data
 
-	for _, s := range st { // operate on each struct
+	for _, s := range st { // operate on each struct'
 		csv.WriteString(stringifyStructCSV(s, columns, columnMap) + "\n")
 	}
 

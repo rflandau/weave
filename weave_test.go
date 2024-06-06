@@ -243,6 +243,14 @@ func TestToCSV(t *testing.T) {
 		})
 	}
 
+	t.Run("not a struct", func(t *testing.T) {
+		m := map[int]float32{}
+
+		if got := ToCSV([]map[int]float32{m}, []string{"some", "column", "names"}); got != ""{
+			t.Errorf("expected the empty string, got %v", got)
+		}
+	})
+
 	// test against significant amounts of data
 	t.Run("long data", func(t *testing.T) {
 		// set up the data and structures
