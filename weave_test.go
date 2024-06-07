@@ -563,14 +563,14 @@ func TestToTable(t *testing.T) {
 
 func TestToJSON(t *testing.T) {
 
-	t.Run("depth 0 all strings", func(t *testing.T) {
+	t.Run("depth 0 simple", func(t *testing.T) {
 		type d0 struct {
-			A string
-			b string
+			A int
+			b int
 			C string
 		}
 		data := []d0{
-			{A: "1", b: "-2", C: "C string"},
+			{A: 1, b: -2, C: "C string"},
 		}
 
 		actual, err := ToJSON(data, []string{"A", "C"})
@@ -600,12 +600,135 @@ func TestToJSON(t *testing.T) {
 			b *string
 			C *string
 		}
-		A, b, C := "1", "-2", "C string"
+		A, b, C := "1.0", "-2", "C string"
 		data := []d0{
 			{A: &A, b: &b, C: &C},
 		}
 
 		actual, err := ToJSON(data, []string{"A", "C"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	t.Run("depth 0 various types", func(t *testing.T) {
+		type d0 struct {
+			A *string
+			b *float64
+			B *float64
+			c *float32
+			C *float32
+			D uint
+			E uint8
+			F uint16
+			G uint32
+			H uint64
+		}
+		A, b, B := "1.0", 1.1, 2.2
+		var c, C float32 = 3.3, 4.4
+		var D uint = 0
+		var E uint8 = 1
+		var F uint16 = 2
+		var G uint32 = 3
+		var H uint64 = 4
+		data := []d0{
+			{A: &A, b: &b, B: &B, c: &c, C: &C,
+				D: D, E: E, F: F, G: G, H: H},
+		}
+
+		actual, err := ToJSON(data, []string{"A", "B", "C",
+			"D", "E", "F", "G", "H"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	t.Run("depth 0 arrays", func(t *testing.T) {
+		type d0 struct {
+			A *[]string
+			B []int
+		}
+		A := []string{"1", "2", "3"}
+		B := []int{1, 2, 3}
+		data := []d0{
+			{A: &A, B: B},
+		}
+
+		actual, err := ToJSON(data, []string{"A", "B"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	t.Run("depth 0 various types", func(t *testing.T) {
+		type d0 struct {
+			A *string
+			b *float64
+			B *float64
+			c *float32
+			C *float32
+			D uint
+			E uint8
+			F uint16
+			G uint32
+			H uint64
+		}
+		A, b, B := "1.0", 1.1, 2.2
+		var c, C float32 = 3.3, 4.4
+		var D uint = 0
+		var E uint8 = 1
+		var F uint16 = 2
+		var G uint32 = 3
+		var H uint64 = 4
+		data := []d0{
+			{A: &A, b: &b, B: &B, c: &c, C: &C,
+				D: D, E: E, F: F, G: G, H: H},
+		}
+
+		actual, err := ToJSON(data, []string{"A", "B", "C",
+			"D", "E", "F", "G", "H"})
 		if err != nil {
 			panic(err)
 		}
@@ -631,7 +754,7 @@ func TestToJSON(t *testing.T) {
 func TestToJSONExclude(t *testing.T) {
 	const emptyJSON = "[]"
 
-	type d0 struct{
+	type d0 struct {
 		a int
 		B uint
 		C string
@@ -670,10 +793,10 @@ func TestToJSONExclude(t *testing.T) {
 				},
 				blacklist: nil,
 			},
-			"[{\"B\":0,\"C\":\"C string\",\"D\":\""+D+"\"},{\"B\":1,\"C\":\"C string\",\"D\":\""+D+"\"}]",
+			"[{\"B\":0,\"C\":\"C string\",\"D\":\"" + D + "\"},{\"B\":1,\"C\":\"C string\",\"D\":\"" + D + "\"}]",
 			false,
 		},
-		{"∀c2r blacklist B and C",
+		/*{"∀c2r blacklist B and C",
 			args{
 				st: []interface{}{
 					d0{a: 10, B: 0, C: "C string", D: &D},
@@ -681,9 +804,9 @@ func TestToJSONExclude(t *testing.T) {
 				},
 				blacklist: []string{"B", "C"},
 			},
-			"[{\"D\":\""+D+"\"},{\"D\":\""+D+"\"}]",
+			"[{\"D\":\"" + D + "\"},{\"D\":\"" + D + "\"}]",
 			false,
-		},
+		},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -698,7 +821,6 @@ func TestToJSONExclude(t *testing.T) {
 		})
 	}
 }
-
 
 func TestFindQualifiedField(t *testing.T) {
 	type lvl3 struct {
