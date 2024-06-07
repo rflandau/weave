@@ -153,6 +153,11 @@ func DefaultTblStyle() *table.Table {
 	})
 }
 
+type gComplex[t float32 | float64] struct {
+	Real      t
+	Imaginary t
+}
+
 // Converts the given array of structs to a JSON containing their values (limited to the given columns).
 func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	if columns == nil || st == nil || len(st) < 1 || len(columns) < 1 { // superfluous request
@@ -198,10 +203,16 @@ func ToJSON[Any any](st []Any, columns []string) (string, error) {
 					g.SetP(v, col)
 				case reflect.Complex64:
 					v := data.Interface().(complex64)
-					g.SetP(v, col)
+					gC := gComplex[float32]{Real: real(v), Imaginary: imag(v)}
+					if _, err := g.SetP(gC, col); err != nil {
+						return "", err
+					}
 				case reflect.Complex128:
 					v := data.Interface().(complex128)
-					g.SetP(v, col)
+					gC := gComplex[float64]{Real: real(v), Imaginary: imag(v)}
+					if _, err := g.SetP(gC, col); err != nil {
+						return "", err
+					}
 				case reflect.Array, reflect.Slice:
 					// arrays must be iterated through and rebuilt to retain
 					// proper typing
