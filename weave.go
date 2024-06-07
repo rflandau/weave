@@ -29,18 +29,7 @@ const (
 // include/exclude and returns a string containing the csv representation of the
 // data contained therein.
 //
-// Uses qualified names to access nested structs/fields of arbitrary depth.
-// Promoted names can still be accessed unqualified, but all other nested
-// structs/fields are accessed via dot separators.
-// Ex: structField.fieldA
-//
-// *See the README's dot qualification section for more information*
-//
-// ! column names are case sensitive
 // ! Returns the empty string if columns or st are empty
-// ! the array of interfaces are expected to be structs with identical structure
-// TODO incorporate exclude boolean to blacklist columns instead of assuming whitelist
-// TODO allow column names to be case-insensitive
 func ToCSV[Any any](st []Any, columns []string) string {
 	// DESIGN:
 	// We have a list of column, ordered.
@@ -153,12 +142,16 @@ func DefaultTblStyle() *table.Table {
 	})
 }
 
+// transmogrification struct for outputting complex numbers that encoding/json
+// otherwise doesn't support
 type gComplex[t float32 | float64] struct {
 	Real      t
 	Imaginary t
 }
 
-// Converts the given array of structs to a JSON containing their values (limited to the given columns).
+// Given an array of an arbitrary struct and the list of *fully-qualified* fields,
+// outputs a JSON array containing the data in the array of the struct.
+// Output is sorted alphabetically
 func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	if columns == nil || st == nil || len(st) < 1 || len(columns) < 1 { // superfluous request
 		return "[]", nil
@@ -253,12 +246,10 @@ func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	return toRet + "]", nil // close JSON array
 }
 
-// Converts the given struct array to a JSON array, excluding the fully
-// qualified field names in blacklist.
-// Calling with an empty or nil blacklist returns the entire, exported
-// structures.
-// Sister function to `ToJSON()`
-// TODO blacklist NYI until Gabs issue#141 is resolved
+// BROKEN UNTIL Gabs ISSUE#141 IS RESOLVED
+// Given an array of an arbitrary struct, outputs a JSON array containing the
+// data in the array of the struct, minus the blacklisted columns
+// Output is sorted alphabetically
 func ToJSONExclude[Any any](st []Any, blacklist []string) (string, error) {
 	if st == nil || len(st) < 1 { // superfluous request
 		return "[]", errors.New(ErrStructIsNil)
