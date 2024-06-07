@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"testing"
@@ -843,6 +844,74 @@ func TestToJSON(t *testing.T) {
 		want += "]"
 
 		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	// NOTE: this test must be crafted carefully because ToJSON and
+	// encoding/json do not use the same sorting method.
+	//
+	// encoding/json sorts by struct order
+	// ToJSON (via gabs) sorts alphabetically
+	t.Run("r30 deep ints", func(t *testing.T) {
+		const iterations = 30
+		type d3 struct {
+			A uint8
+			B uint16
+			C uint32
+			D *uint64
+		}
+		type d2 struct {
+			A2     *int64
+			B2     int32
+			Depth3 d3
+		}
+		type d1 struct {
+			A1     int16
+			Depth2 *d2
+		}
+		type d0 struct {
+			A0     int8
+			Depth1 d1
+		}
+		var (
+			d3A  uint8  = math.MaxUint8
+			d3B  uint16 = math.MaxUint16
+			d3C  uint32 = math.MaxUint32
+			d3D  uint64 = math.MaxUint64
+			d2A2 int64  = math.MaxInt64
+			d2B2 int32  = math.MaxInt32
+			d1A1 int16  = math.MaxInt16
+			d0A0 int8   = math.MaxInt8
+		)
+
+		data := make([]d0, iterations)
+		for i := 0; i < iterations; i++ {
+			data[i] = d0{A0: d0A0,
+				Depth1: d1{A1: d1A1,
+					Depth2: &d2{A2: &d2A2, B2: d2B2,
+						Depth3: d3{A: d3A, B: d3B, C: d3C, D: &d3D}}}}
+		}
+
+		actual, err := ToJSON(data, []string{"A0",
+			"Depth1.A1",
+			"Depth1.Depth2.A2", "Depth1.Depth2.B2",
+			"Depth1.Depth2.Depth3.A", "Depth1.Depth2.Depth3.B", "Depth1.Depth2.Depth3.C", "Depth1.Depth2.Depth3.D"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if want != actual {
 			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
 		}
 	})
