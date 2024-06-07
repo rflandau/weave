@@ -327,13 +327,13 @@ func FindQualifiedField[Any any](qualCol string, st any) (field reflect.StructFi
 	field.Type = t
 	// iterate down the field tree until we run out of qualifications or cannot
 	// locate the next qualification
-	for i, e := range exploded {
+	for _, e := range exploded {
 		if field.Type.Kind() == reflect.Pointer {
 			field.Type = field.Type.Elem() // dereference
 		}
 		field, found = field.Type.FieldByName(e)
 		if !found { // no value found
-			fmt.Printf("DEBUG: found no value for qualifier '%s' at depth %d\n", e, i)
+			//fmt.Printf("Found no value for qualifier '%s' at depth %d\n", e, i)
 			return reflect.StructField{}, false, nil, nil
 		}
 		// build path
