@@ -94,12 +94,21 @@ type A struct {
 
 # Limitations
 
+- Column names (and qualifications) are case sensitive
+
 ## ToJSON
 
-Encoding/json does not accept complex numbers. Weave can by converting them to a generic struct and outputing the struct as JSON objects with the fields "Real" and "Imaginary".
+- Encoding/json does not accept complex numbers. Weave can by converting them to a generic struct and outputing the struct as JSON objects with the fields "Real" and "Imaginary".
+
+- As with normal JSON encoding, only exported struct fields can be output.
 
 ## ToJSONExclude
 
 The blacklist parameter is currently ineffectual due to a bug in how the JSON library (Gabs) `.Wrap()`s existing structures. I have opened a PR [#142](https://github.com/Jeffail/gabs/pull/142) to fix this.
 
 This function will instead output ALL exported fields at all depths.
+
+# TODOs
+
+- [ ] Create ToCSVExclude, consuming column list as blacklist
+- [ ] Make qualified column names case-insensitive
