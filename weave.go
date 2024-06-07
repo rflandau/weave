@@ -55,7 +55,7 @@ func ToCSV[Any any](st []Any, columns []string) string {
 
 	// test the first struct is actually a struct
 	// if later structs do not match, that is a developer error
-	if reflect.TypeOf(st[0]).Kind()  != reflect.Struct{
+	if reflect.TypeOf(st[0]).Kind() != reflect.Struct {
 		return ""
 	}
 
@@ -192,14 +192,15 @@ func ToJSON[Any any](st []Any, columns []string) (string, error) {
 // Calling with an empty or nil blacklist returns the entire, exported
 // structures.
 // Sister function to `ToJSON()`
-func ToJSONExclude[Any any](st []Any, blacklist []string) (string, error){
+// TODO blacklist NYI until Gabs issue#141 is resolved
+func ToJSONExclude[Any any](st []Any, blacklist []string) (string, error) {
 	if st == nil || len(st) < 1 { // superfluous request
 		return "[]", errors.New(ErrStructIsNil)
 	}
 
 	// test the first struct is actually a struct
 	// if later structs do not match, that is a developer error
-	if reflect.TypeOf(st[0]).Kind()  != reflect.Struct{
+	if reflect.TypeOf(st[0]).Kind() != reflect.Struct {
 		return "[]", errors.New(ErrNotAStruct)
 	}
 
@@ -207,13 +208,12 @@ func ToJSONExclude[Any any](st []Any, blacklist []string) (string, error){
 	writer.WriteRune('[')
 	for _, s := range st {
 		obj := gabs.Wrap(s)
-		fmt.Println(obj.String())
 		// remove excluded colums
-		for _, col := range blacklist{
+		/*for _, col := range blacklist {
 			if err := obj.DeleteP(col); err != nil {
 				return "", fmt.Errorf("column %s: %v", col, err)
 			}
-		}
+		}*/
 		// add to array
 		writer.WriteString(obj.String())
 		writer.WriteString(",")
