@@ -782,18 +782,99 @@ func TestToJSON(t *testing.T) {
 		}
 		type d0 struct {
 			A0     *string
-			B0     complex64
-			depth1 d1
+			B0     string
+			Depth1 d1
 		}
 		var A0 string = "Coffee or death"
-		var B0 complex64 = complex(9.5, 55)
+		var B0 string = "donate to simply cats"
 		var A1 int = 5
 		var B1 float64 = 3.14
 		data := []d0{
-			{A0: &A0, B0: B0, depth1: d1{A1: A1, B1: &B1}},
+			{A0: &A0, B0: B0, Depth1: d1{A1: A1, B1: &B1}},
 		}
 
-		actual, err := ToJSON(data, []string{"A0", "B0", "depth1.A1", "depth1.B1"})
+		actual, err := ToJSON(data, []string{"A0", "B0", "Depth1.A1", "Depth1.B1"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	// NOTE: this test must be crafted carefully because ToJSON and
+	// encoding/json do not use the same sorting method.
+	//
+	// encoding/json sorts by struct order
+	// ToJSON (via gabs) sorts alphabetically
+	t.Run("depth 1 embedding", func(t *testing.T) {
+		type d1 struct {
+			C1 int
+			D1 *float64
+		}
+		type d0 struct {
+			A0 *string
+			B0 float32
+			d1
+		}
+		var A0 string = "Go drink some water"
+		var B0 float32 = 12.8
+		var C1 int = 5
+		var D1 float64 = 3.14
+		data := []d0{
+			{A0: &A0, B0: B0, d1: d1{C1: C1, D1: &D1}},
+		}
+
+		actual, err := ToJSON(data, []string{"A0", "B0", "C1", "D1"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if string(want) != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
+		}
+	})
+	t.Run("depth 1 embedding w/ disordered columns", func(t *testing.T) {
+		type d1 struct {
+			C1 int
+			D1 *float64
+		}
+		type d0 struct {
+			A0 *string
+			B0 float32
+			d1
+		}
+		var A0 string = "Go drink some water"
+		var B0 float32 = 12.8
+		var C1 int = 5
+		var D1 float64 = 3.14
+		data := []d0{
+			{A0: &A0, B0: B0, d1: d1{C1: C1, D1: &D1}},
+		}
+
+		actual, err := ToJSON(data, []string{"C1", "D1", "B0", "A0"})
 		if err != nil {
 			panic(err)
 		}
