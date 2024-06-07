@@ -90,3 +90,14 @@ type A struct {
 
 "i.D.F", "i.z"
 
+# Limitations
+
+## ToJSON
+
+Complex numbers are not properly handled in json/encoding, which we use to marshall the data. Instead, complex numbers are converted to a generic struct and output as objects with the fields "Real" and "Imaginary".
+
+## ToJSONExclude
+
+The blacklist parameter is currently ineffectual due to a bug in how the JSON library (gabs) Wraps existing structures. I have opened a PR [#142](https://github.com/Jeffail/gabs/pull/142) to fix this.
+
+This function will instead output ALL exported fields at all depths.
