@@ -562,6 +562,22 @@ func TestToTable(t *testing.T) {
 }
 
 func TestToJSON(t *testing.T) {
+	t.Run("superfluous", func(t *testing.T) {
+		var err error
+		var a1, a2 string
+		a1, err = ToJSON[any](nil, []string{"A", "B", "c"})
+		if err != nil {
+			t.Error("Expected no error, got: ", err)
+		}
+		a2, err = ToJSON[any]([]interface{}{}, nil)
+		if err != nil {
+			t.Error("Expected no error, got: ", err)
+		}
+
+		if a1 != "[]" || a2 != "[]" {
+			t.Errorf("expected '[]', got (a1:%v) (a2:%v)", a1, a2)
+		}
+	})
 
 	t.Run("depth 0 simple", func(t *testing.T) {
 		type d0 struct {
@@ -774,6 +790,23 @@ func TestToJSON(t *testing.T) {
 		if want != actual {
 			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", "", actual)
 		}
+	})
+	t.Run("depth 0 unexported panic", func(t *testing.T) {
+		type d0 struct {
+			A int
+			B *uint
+			c string
+		}
+		A, B := -5, uint(1)
+		data := []d0{
+			{A: A, B: &B, c: "Linux or death"},
+		}
+
+		defer func() {
+			recover()
+		}()
+		ToJSON(data, []string{"A", "B", "c"})
+		t.Error("ToJSON should have panicked due to unexported value")
 	})
 	t.Run("depth 1 simple", func(t *testing.T) {
 		type d1 struct {
