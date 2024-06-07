@@ -165,18 +165,73 @@ func ToJSON[Any any](st []Any, columns []string) (string, error) {
 	bldr.WriteRune('[') // open JSON array
 	for _, s := range st {
 		g := gabs.New()
-		structVals := reflect.ValueOf(s)
+		structVO := reflect.ValueOf(s)
 		for _, col := range columns {
 			// get value associated to this column
-			findex := columnMap[col]
-			if findex != nil {
-				data := structVals.FieldByIndex(findex)
+			fIndex := columnMap[col]
+			if fIndex != nil {
+				data := structVO.FieldByIndex(fIndex)
 				if data.Kind() == reflect.Pointer {
 					data = data.Elem()
 				}
-				// save the data into our object
-				// TODO cast data back to its native type
-				g.SetP(fmt.Sprintf("%v", data), col)
+				switch data.Type().Kind() {
+				case reflect.Float32:
+					v := data.Interface().(float32)
+					g.SetP(v, col)
+				case reflect.Float64:
+					v := data.Interface().(float64)
+					g.SetP(v, col)
+				case reflect.Int:
+					v := data.Interface().(int)
+					g.SetP(v, col)
+				case reflect.Int8:
+					v := data.Interface().(int8)
+					g.SetP(v, col)
+				case reflect.Int16:
+					v := data.Interface().(int16)
+					g.SetP(v, col)
+				case reflect.Int32:
+					v := data.Interface().(int32)
+					g.SetP(v, col)
+				case reflect.Int64:
+					v := data.Interface().(int64)
+					g.SetP(v, col)
+				case reflect.Complex64:
+					v := data.Interface().(complex64)
+					g.SetP(v, col)
+				case reflect.Complex128:
+					v := data.Interface().(complex128)
+					g.SetP(v, col)
+				case reflect.Array, reflect.Slice:
+					// arrays must be iterated through and rebuilt to retain
+					// proper typing
+					g.ArrayP(col)
+					// append each item in the array
+					iCount := data.Len()
+					for i := 0; i < iCount; i++ {
+						g.ArrayAppendP(data.Index(i).Interface(), col)
+					}
+				case reflect.Uint:
+					v := data.Interface().(uint)
+					g.SetP(v, col)
+				case reflect.Uint8:
+					v := data.Interface().(uint8)
+					g.SetP(v, col)
+				case reflect.Uint16:
+					v := data.Interface().(uint16)
+					g.SetP(v, col)
+				case reflect.Uint32:
+					v := data.Interface().(uint32)
+					g.SetP(v, col)
+				case reflect.Uint64:
+					v := data.Interface().(uint64)
+					g.SetP(v, col)
+				case reflect.String:
+					v := data.Interface().(string)
+					g.SetP(v, col)
+				default: // unsupported type, default to string
+					g.SetP(fmt.Sprintf("%v", data), col)
+				}
 			}
 		}
 		bldr.WriteString(g.String())
