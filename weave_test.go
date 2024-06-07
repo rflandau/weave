@@ -702,33 +702,98 @@ func TestToJSON(t *testing.T) {
 			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", string(want), actual)
 		}
 	})
-	t.Run("depth 0 various types", func(t *testing.T) {
+
+	// NOTE: this test just checks that an error did not occur in parsing; it
+	// does not compare the result to standard JSON encoding, as the encoder
+	// cannot handle complex numbers
+	t.Run("depth 0 complex", func(t *testing.T) {
 		type d0 struct {
-			A *string
-			b *float64
-			B *float64
-			c *float32
-			C *float32
-			D uint
-			E uint8
-			F uint16
-			G uint32
-			H uint64
+			A complex64
+			B *complex128
 		}
-		A, b, B := "1.0", 1.1, 2.2
-		var c, C float32 = 3.3, 4.4
-		var D uint = 0
-		var E uint8 = 1
-		var F uint16 = 2
-		var G uint32 = 3
-		var H uint64 = 4
+		var A complex64 = 10 + 11i
+		B := complex(1.5, 8.5)
 		data := []d0{
-			{A: &A, b: &b, B: &B, c: &c, C: &C,
-				D: D, E: E, F: F, G: G, H: H},
+			{A: A, B: &B},
 		}
 
-		actual, err := ToJSON(data, []string{"A", "B", "C",
-			"D", "E", "F", "G", "H"})
+		actual, err := ToJSON(data, []string{"A", "B"})
+		if err != nil {
+			panic(err)
+		}
+
+		/* want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"*/
+
+		want := "[{\"A\":{\"Real\":10,\"Imaginary\":11},\"B\":{\"Real\":1.5,\"Imaginary\":8.5}}]"
+
+		if want != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", want, actual)
+		}
+	})
+	t.Run("r5 depth 0 complex", func(t *testing.T) {
+		type d0 struct {
+			A int
+			B *uint
+			c string
+		}
+		A, B := -5, uint(1)
+		data := []d0{
+			{A: A, B: &B, c: "My"},
+			{A: A, B: &B, c: "cat"},
+			{A: A, B: &B, c: "has"},
+			{A: A, B: &B, c: "a"},
+			{A: A, B: &B, c: "funny"},
+			{A: A, B: &B, c: "face"},
+		}
+
+		actual, err := ToJSON(data, []string{"A", "B"})
+		if err != nil {
+			panic(err)
+		}
+
+		var want string = "["
+		for _, d := range data {
+			w, err := json.Marshal(d)
+			if err != nil {
+				panic(err)
+			}
+			want += string(w) + ","
+		}
+		want = strings.TrimSuffix(want, ",")
+		want += "]"
+
+		if want != actual {
+			t.Errorf("want <> actual:\nwant: '%v'\nactual: '%v'\n", "", actual)
+		}
+	})
+	t.Run("depth 1 simple", func(t *testing.T) {
+		type d1 struct {
+			A1 int
+			B1 *float64
+		}
+		type d0 struct {
+			A0     *string
+			B0     complex64
+			depth1 d1
+		}
+		var A0 string = "Coffee or death"
+		var B0 complex64 = complex(9.5, 55)
+		var A1 int = 5
+		var B1 float64 = 3.14
+		data := []d0{
+			{A0: &A0, B0: B0, depth1: d1{A1: A1, B1: &B1}},
+		}
+
+		actual, err := ToJSON(data, []string{"A0", "B0", "depth1.A1", "depth1.B1"})
 		if err != nil {
 			panic(err)
 		}
