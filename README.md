@@ -1,11 +1,11 @@
 # Weave
 
-Weave provides the ability to turn data stored in arbitrary structs into exportable formats like CSV or JSON.
+Weave provides the ability to turn data stored in arbitrary structs of arbitrary depth into exportable formats like CSV or JSON.
 It supports field selection, named/unnamed structs, and embeds.
 
 # Usage
 
-Basic usage is via the output modules (`To*`). Simply pass your data to an output module along with the fully qualified (more on this below) names of the columns you want outputted. The data must be an *array of the same struct*.
+Basic usage is via the output modules (`To*`). Simply pass your array of the *same struct* to an output module along with the fully qualified (more on this below) names of the columns you want outputted.
 
 Ex: `out := ToCSV(data, []string{"fieldname", "structname.anotherinnerstruct.fieldname"})`
 
@@ -29,9 +29,11 @@ output := ToCSV(data, []string{"A"})
 fmt.Println(output)
 ```
 
+See the test suite in [weave_test](weave_test.go) for more usage examples.
+
 ## Dot Qualification
 
-Column names are dot qualified and follow Go's rules for struct nesting and promotion.
+Column names are dot qualified and follow Go's rules for struct nesting and promotion. They are all compatible with [Gabs](https://pkg.go.dev/github.com/Jeffail/gabs/v2) paths.
 
 To repeat: call `StructField()` on your struct to see the full, qualified names of every field at every depth.
 
@@ -94,10 +96,10 @@ type A struct {
 
 ## ToJSON
 
-Complex numbers are not properly handled in json/encoding, which we use to marshall the data. Instead, complex numbers are converted to a generic struct and output as objects with the fields "Real" and "Imaginary".
+Encoding/json does not accept complex numbers. Weave can by converting them to a generic struct and outputing the struct as JSON objects with the fields "Real" and "Imaginary".
 
 ## ToJSONExclude
 
-The blacklist parameter is currently ineffectual due to a bug in how the JSON library (gabs) Wraps existing structures. I have opened a PR [#142](https://github.com/Jeffail/gabs/pull/142) to fix this.
+The blacklist parameter is currently ineffectual due to a bug in how the JSON library (Gabs) `.Wrap()`s existing structures. I have opened a PR [#142](https://github.com/Jeffail/gabs/pull/142) to fix this.
 
 This function will instead output ALL exported fields at all depths.
