@@ -1,3 +1,5 @@
+# Merged into the Gravwell [monorepo](https://github.com/gravwell/gravwell/tree/main), available [here](https://github.com/gravwell/gravwell/tree/ee1aef53c0a8b0cea5939f5365d2ac5e2cfe49d8/utils/weave).
+
 # Weave
 
 Weave provides the ability to turn data stored in arbitrary structs of arbitrary depth into exportable formats like CSV or JSON.
